@@ -1,0 +1,51 @@
+resources:
+  jobs:
+    engagement_call_transcript_pipeline:
+      name: engagement-call-transcript-pipeline
+      timeout_seconds: 7200
+      max_concurrent_runs: 5
+      queue:
+        enabled: true
+
+      # Uncomment once you're ready to schedule (leave commented while testing manually)
+      # schedule:
+      #   quartz_cron_expression: "0 30 7 * * ?"
+      #   timezone_id: Europe/Berlin
+      #   pause_status: UNPAUSED
+
+      # No job_clusters block: this workspace only supports serverless compute.
+      # Tasks below omit job_cluster_key / new_cluster, so each runs on
+      # serverless automatically.
+
+      tasks:
+        - task_key: call_txn_bronze_ingest
+          notebook_task:
+            notebook_path: /Workspace/Users/<your-email>/engagement-call-transcript-pipeline/bronze_notebook
+            base_parameters:
+              env: dev
+              end_date: ""
+              lookback_days: ""
+              regions: "EU,NAM,LATAM,APAC,MEA"
+
+        - task_key: call_txn_silver_enrich
+          depends_on:
+            - task_key: call_txn_bronze_ingest
+          notebook_task:
+            notebook_path: /Workspace/Users/<your-email>/engagement-call-transcript-pipeline/silver_notebook
+            base_parameters:
+              env: dev
+              end_date: ""
+              lookback_days: ""
+              regions: "EU,NAM,LATAM,APAC,MEA"
+
+        - task_key: call_txn_silver_plus_explode
+          depends_on:
+            - task_key: call_txn_silver_enrich
+          notebook_task:
+            notebook_path: /Workspace/Users/<your-email>/engagement-call-transcript-pipeline/silver_plus_notebook
+            base_parameters:
+              env: dev
+
+      tags:
+        PROJECT: CALL_INTELLIGENCE
+        CAPABILITY: TAG-CALLINTEL-ALL-ALL
