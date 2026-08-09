@@ -1,0 +1,78 @@
+{
+  "name": "{{ configs.data_product }}-engagement_call_transcript_pipeline",
+  "timeout_seconds": 7200,
+  "email_notifications": {{ configs.jobs.email_notifications | tojson(indent=2) | indent(2, False) }},
+  {% if configs.environment == 'prod' %}
+  "schedule": {
+    "quartz_cron_expression": "0 30 7 * * ?",
+    "timezone_id": "Europe/Berlin",
+    "pause_status": "UNPAUSED"
+  },
+  {% endif %}
+  "max_concurrent_runs": 5,
+  "tasks": [
+    {
+      "task_key": "call_txn_bronze_ingest",
+      "notebook_task": {
+        "notebook_path": "/{{ configs.data_product }}/notebooks/bronze/call_engagement/voice_analysis_bronze_ingest",
+        "base_parameters": {
+          "env": "{{ configs.environment }}",
+          "end_date": "",
+          "lookback_days": "",
+          "regions": "EU,BR,NAM,PAC,SEA,SLAM,IN"
+        }
+      },
+      "job_cluster_key": "{{ configs.data_product }}-callintel_transcript_integration",
+      "libraries": {{ configs.jobs.libraries | tojson(indent=2) | indent(6, False) }}
+    },
+    {
+      "task_key": "call_txn_silver_enrich",
+      "depends_on": [
+        { "task_key": "call_txn_bronze_ingest" }
+      ],
+      "notebook_task": {
+        "notebook_path": "/{{ configs.data_product }}/notebooks/silver/call_engagement/call_transcript_summary_silver",
+        "base_parameters": {
+          "env": "{{ configs.environment }}",
+          "end_date": "",
+          "lookback_days": "",
+          "regions": "EU,BR,NAM,PAC,SEA,SLAM,IN"
+        }
+      },
+      "job_cluster_key": "{{ configs.data_product }}-callintel_transcript_integration",
+      "libraries": {{ configs.jobs.libraries | tojson(indent=2) | indent(6, False) }}
+    },
+    {
+      "task_key": "call_txn_silver_plus_explode",
+      "depends_on": [
+        { "task_key": "call_txn_silver_enrich" }
+      ],
+      "notebook_task": {
+        "notebook_path": "/{{ configs.data_product }}/notebooks/silver_plus/call_engagement/call_transcript_lines_silver_plus",
+        "base_parameters": {
+          "env": "{{ configs.environment }}"
+        }
+      },
+      "job_cluster_key": "{{ configs.data_product }}-callintel_transcript_integration",
+      "libraries": {{ configs.jobs.libraries | tojson(indent=2) | indent(6, False) }}
+    }
+  ],
+
+  "job_clusters": [
+    {
+      "job_cluster_key": "{{ configs.data_product }}-callintel_transcript_integration",
+      "new_cluster": {
+        "spark_version": "{{ configs.jobs.cluster.spark_version }}",
+        "node_type_id": "r5d.xlarge",
+        "num_workers": 4,
+        "policy_id": "{{ configs.jobs.cluster.policy_id }}",
+        "data_security_mode": "{{ configs.jobs.cluster.data_security_mode }}"
+      }
+    }
+  ],
+
+  "tags": {
+    "PROJECT": "CALL_INTELLIGENCE",
+    "CAPABILITY": "TAG-CALLINTEL-ALL-ALL"
+  }
+}

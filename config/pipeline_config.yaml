@@ -1,0 +1,84 @@
+# pipeline_config.yaml
+# Central configuration for the Engagement Call Intelligence pipeline
+# (Bronze -> Silver -> Silver Plus). Referenced by all notebooks instead of
+# hardcoding paths/table names inline.
+#
+# Resolve per-environment values via Databricks widgets / job parameters,
+# e.g. dbutils.widgets.get("env") -> "dev" | "stg" | "prod", then load the
+# matching block below (see notebooks/utils/common_utils.py: load_pipeline_config()).
+
+environments:
+
+  dev:
+    aws:
+      region: eu-west-1
+      s3_bucket: callintel-dev-raw
+      s3_raw_prefix: contact-lens/voice-analysis/redacted
+      s3_bronze_prefix: bronze/call_engagement/voice_analysis
+      s3_curated_bucket: callintel-dev-curated
+    databricks:
+      catalog: callintel_dev
+      bronze_schema: bronze_call_engagement
+      silver_schema: silver_call_engagement
+      silver_plus_schema: silver_plus_call_engagement
+      control_schema: pipeline_control
+      external_location_name: callintel_dev_external_loc
+      storage_credential_name: callintel_dev_storage_cred
+      warehouse_root: s3://callintel-dev-curated/warehouse
+      raw_landing_volume_path: /Volumes/callintel_dev/bronze_call_engagement/raw_landing
+
+  stg:
+    aws:
+      region: eu-west-1
+      s3_bucket: callintel-stg-raw
+      s3_raw_prefix: contact-lens/voice-analysis/redacted
+      s3_bronze_prefix: bronze/call_engagement/voice_analysis
+      s3_curated_bucket: callintel-stg-curated
+    databricks:
+      catalog: callintel_stg
+      bronze_schema: bronze_call_engagement
+      silver_schema: silver_call_engagement
+      silver_plus_schema: silver_plus_call_engagement
+      control_schema: pipeline_control
+      external_location_name: callintel_stg_external_loc
+      storage_credential_name: callintel_stg_storage_cred
+      warehouse_root: s3://callintel-stg-curated/warehouse
+      raw_landing_volume_path: /Volumes/callintel_dev/bronze_call_engagement/raw_landing
+
+  prod:
+    aws:
+      region: eu-west-1
+      s3_bucket: callintel-prod-raw
+      s3_raw_prefix: contact-lens/voice-analysis/redacted
+      s3_bronze_prefix: bronze/call_engagement/voice_analysis
+      s3_curated_bucket: callintel-prod-curated
+    databricks:
+      catalog: callintel_prod
+      bronze_schema: bronze_call_engagement
+      silver_schema: silver_call_engagement
+      silver_plus_schema: silver_plus_call_engagement
+      control_schema: pipeline_control
+      external_location_name: callintel_prod_external_loc
+      storage_credential_name: callintel_prod_storage_cred
+      warehouse_root: s3://callintel-prod-curated/warehouse
+      raw_landing_volume_path: /Volumes/callintel_dev/bronze_call_engagement/raw_landing
+
+# Regional landing sub-paths under {s3_bucket}/{s3_raw_prefix}/<region>/
+# Consumed by notebooks/bronze/call_engagement/voice_analysis_bronze_ingest.py
+regions:
+  - EU
+  - NAM
+  - LATAM
+  - APAC
+  - MEA
+
+tables:
+  silver_summary: call_transcript_summary
+  silver_lines: call_transcript_lines
+  cdf_state: callintel_pipeline_cdf_state
+
+job_defaults:
+  schedule_cron: "0 30 7 * * ?"
+  timezone: Europe/Berlin
+  timeout_seconds: 7200
+  max_concurrent_runs: 5

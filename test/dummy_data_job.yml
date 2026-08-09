@@ -1,0 +1,31 @@
+resources:
+  jobs:
+    generate_dummy_call_data:
+      name: generate-dummy-call-data
+      timeout_seconds: 1800
+      max_concurrent_runs: 1
+      queue:
+        enabled: true
+
+      # No job_clusters block: this workspace only supports serverless compute.
+
+      parameters:
+        - name: env
+          default: dev
+        - name: num_records
+          default: "20"
+        - name: regions
+          default: "EU,NAM,LATAM,APAC,MEA"
+
+      tasks:
+        - task_key: generate_dummy_data
+          notebook_task:
+            notebook_path: /Workspace/Users/<your-email>/engagement-call-transcript-pipeline/test/generate_dummy_data_notebook
+            base_parameters:
+              env: "{{job.parameters.env}}"
+              num_records: "{{job.parameters.num_records}}"
+              regions: "{{job.parameters.regions}}"
+
+      tags:
+        PROJECT: CALL_INTELLIGENCE
+        CAPABILITY: TAG-CALLINTEL-ALL-ALL
